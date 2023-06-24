@@ -18,6 +18,7 @@ add_executable(main ../example_runner.cpp)
 target_sources(main PRIVATE
     ../simple_arithmetic.cpp
     ../simple_floating_point.cpp
+    ../simple_arrays.cpp
 )
 
 # Link the executable to the SEAL library.
