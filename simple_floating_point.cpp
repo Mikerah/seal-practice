@@ -4,18 +4,14 @@
 using namespace std;
 using namespace seal;
 
-string uint64_to_hex_string(uint64_t value);
-
-int main()
+void main_simple_floating_point()
 {
     // Create encryption parameters.
-    EncryptionParameters parms(scheme_type::bfv);
+    EncryptionParameters parms(scheme_type::ckks);
 
-    size_t poly_modulus_degree = 4096;
+    size_t poly_modulus_degree = 8192;
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(CoeffModulus::BFVDefault(poly_modulus_degree));
-
-    parms.set_plain_modulus(256);
+    parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
 
     SEALContext context(parms);
 
@@ -34,11 +30,15 @@ int main()
     // Create an Decryptor instance.
     Decryptor decryptor(context, secret_key);
 
-    // Encode two integers as plaintexts.
-    uint64_t x = 2;
-    uint64_t y = 3;
-    Plaintext plain1(uint64_to_hex_string(x));
-    Plaintext plain2(uint64_to_hex_string(y));
+    // Create CKKSEncoder instance
+    CKKSEncoder encoder(context);
+
+    double scale = pow(2.0, 40);
+
+    // Encode two floats as plaintexts.
+    Plaintext plain1, plain2;
+    encoder.encode(0.5, scale, plain1);
+    encoder.encode(1.3, scale, plain2);
 
     // Encrypt the plaintexts.
     Ciphertext cipher1, cipher2;
@@ -53,15 +53,10 @@ int main()
     Plaintext plain_result;
     decryptor.decrypt(cipher_result, plain_result);
 
-    cout << "Decrypted result: " << plain_result.to_string() << endl;
+    // Decode the result.
+    vector<double> result;
+    encoder.decode(plain_result, result);
 
-    return 0;
-}
+    cout << "Decrypted result: " << result[0] << endl;
 
-/*
-Helper function: Convert a value into a hexadecimal string, e.g., uint64_t(17) --> "11".
-*/
-inline std::string uint64_to_hex_string(std::uint64_t value)
-{
-    return seal::util::uint_to_hex_string(&value, std::size_t(1));
 }
