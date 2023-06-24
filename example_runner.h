@@ -6,3 +6,5 @@
 void main_simple_arithmetic();
 
 void main_simple_floating_point();
+
+void main_arrays();

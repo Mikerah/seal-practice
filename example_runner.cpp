@@ -11,4 +11,7 @@ int main() {
 
     cout << "Running Simple Floating Point Example" << endl;
     main_simple_floating_point();
+
+    cout << "Running Simple Arrays/Vectors Example" << endl;
+    main_arrays();
 }
