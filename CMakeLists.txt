@@ -13,7 +13,7 @@ find_package(SEAL CONFIG REQUIRED)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 # Add an executable
-add_executable(main simple_arithmetic.cpp)
+add_executable(main ../simple_arithmetic.cpp)
 
 # Link the executable to the SEAL library.
 target_link_libraries(main PRIVATE SEAL::seal)

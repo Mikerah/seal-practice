@@ -4,6 +4,8 @@
 using namespace std;
 using namespace seal;
 
+string uint64_to_hex_string(uint64_t value);
+
 int main()
 {
     // Create encryption parameters.
@@ -15,12 +17,13 @@ int main()
 
     parms.set_plain_modulus(256);
 
-    auto context = SEALContext::Create(parms);
+    SEALContext context(parms);
 
     // Generate keys.
     KeyGenerator keygen(context);
-    auto public_key = keygen.public_key();
-    auto secret_key = keygen.secret_key();
+    SecretKey secret_key = keygen.secret_key();
+    PublicKey public_key;
+    keygen.create_public_key(public_key);
 
     // Create an Evaluator instance.
     Evaluator evaluator(context);
@@ -32,8 +35,10 @@ int main()
     Decryptor decryptor(context, secret_key);
 
     // Encode two integers as plaintexts.
-    Plaintext plain1 = "2";
-    Plaintext plain2 = "3";
+    uint64_t x = 2;
+    uint64_t y = 3;
+    Plaintext plain1(uint64_to_hex_string(x));
+    Plaintext plain2(uint64_to_hex_string(y));
 
     // Encrypt the plaintexts.
     Ciphertext cipher1, cipher2;
@@ -51,4 +56,12 @@ int main()
     cout << "Decrypted result: " << plain_result.to_string() << endl;
 
     return 0;
+}
+
+/*
+Helper function: Convert a value into a hexadecimal string, e.g., uint64_t(17) --> "11".
+*/
+inline std::string uint64_to_hex_string(std::uint64_t value)
+{
+    return seal::util::uint_to_hex_string(&value, std::size_t(1));
 }
