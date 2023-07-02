@@ -14,4 +14,7 @@ int main() {
 
     cout << "Running Simple Arrays/Vectors Example" << endl;
     main_arrays();
+
+    cout << "Running Conditional Selection Example" << endl;
+    main_conditional_select();
 }
