@@ -17,4 +17,7 @@ int main() {
 
     cout << "Running Conditional Selection Example" << endl;
     main_conditional_select();
+
+    cout << "Running inv Example" << endl;
+    main_inv();
 }
