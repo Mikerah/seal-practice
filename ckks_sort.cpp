@@ -1,27 +1,27 @@
 #include <iostream>
 #include "seal/seal.h"
+#include "helpers.h"
 
 using namespace std;
 using namespace seal;
 
-Ciphertext inv(SEALContext *context, RelinKeys relin_keys, double scale, Plaintext one_pt, Plaintext two_pt, Ciphertext x, int d) {
-    Evaluator evaluator(*context);
-    //CKKSEncoder encoder(*context);
-    //CKKSEncoder encoder(context);
-    
-    /*
+Ciphertext inv(EncryptionParameters parms, RelinKeys relin_keys, double scale, Ciphertext x, int d) {
+
+    SEALContext context(parms);
+    Evaluator evaluator(context);
+    CKKSEncoder encoder(context);
+
     Plaintext one_pt, two_pt;
     encoder.encode(1.0, scale, one_pt);
     encoder.encode(2.0, scale, two_pt);
-    Ciphertext one_ct, two_ct;
-    encryptor.encrypt(one_pt, one_ct);
-    encryptor.encrypt(two_pt, two_ct);
-    */
+
 
     Ciphertext a_0, b_0;
     evaluator.negate_inplace(x);
     evaluator.add_plain(x, two_pt, a_0);
     evaluator.add_plain(x, one_pt, b_0);
+    //evaluator.rescale_to_next_inplace(a_0);
+    //evaluator.rescale_to_next_inplace(b_0);
 
     Ciphertext *tmp_a = &a_0;
     Ciphertext *tmp_b = &b_0;
@@ -29,19 +29,33 @@ Ciphertext inv(SEALContext *context, RelinKeys relin_keys, double scale, Plainte
     for (int i = 0; i < d; i++) {
         evaluator.square(*tmp_b, *tmp_b);
         evaluator.relinearize_inplace(*tmp_b, relin_keys);
-        evaluator.rescale_to_next(*tmp_b, *tmp_b);
+        evaluator.rescale_to_next_inplace(*tmp_b);
 
         Ciphertext tmp;
 
-        evaluator.mod_switch_to_inplace(one_pt, (*tmp_b).parms_id());
-        evaluator.add_plain(*tmp_b, one_pt, tmp);
-        /* evaluator.rescale_to_next(tmp, tmp);
-        cout << tmp.scale() << endl;
-        cout << (*tmp_a).scale() << endl; */
+        evaluator.mod_switch_to_inplace(*tmp_a, (*tmp_b).parms_id());
+        evaluator.multiply(*tmp_b, *tmp_a, tmp);
+        evaluator.relinearize_inplace(tmp, relin_keys);
+        evaluator.rescale_to_next_inplace(tmp);
 
-        /* evaluator.multiply(*tmp_a, tmp, *tmp_a);
+        
+        //(*tmp_a).scale() = pow(2.0, 40);
+        //tmp.scale() = pow(2.0, 40);
+
+        /*
+        cout << "Scale of tmp_b: " << log2((*tmp_b).scale()) << endl;
+        cout << "Scale of tmp_a: " << log2((*tmp_a).scale()) << endl;
+        cout << "Scale of tmp: " << log2(tmp.scale()) << endl;
+    
+        cout << "Parms of tmp_b: " << (*tmp_b).parms_id() << endl;
+        cout << "Parms of tmp_a: " << (*tmp_a).parms_id() << endl;
+        cout << "Parms of tmp: " << tmp.parms_id() << endl;
+        */
+
+        tmp.scale() = pow(2.0, 40);
+        evaluator.mod_switch_to_inplace(*tmp_a, tmp.parms_id());
+        evaluator.add_inplace(*tmp_a, tmp);
         evaluator.relinearize_inplace(*tmp_a, relin_keys);
-        evaluator.rescale_to_next(*tmp_a, *tmp_a); */
     }
 
     return *tmp_a;
@@ -52,9 +66,12 @@ void main_inv()
     // Create encryption parameters.
     EncryptionParameters parms(scheme_type::ckks);
 
-    size_t poly_modulus_degree = 8192;
+    size_t poly_modulus_degree = 16384;
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60}));
+    // cout << CoeffModulus::MaxBitCount(poly_modulus_degree) << endl;
+    parms.set_coeff_modulus(CoeffModulus::Create(poly_modulus_degree, {60, 40, 40, 60, 60, 60, 60, 50}));
+    
+    // parms.set_coeff_modulus(CoeffModulus::CKKSDefault(poly_modulus_degree));
 
     SEALContext context(parms);
 
@@ -81,22 +98,18 @@ void main_inv()
     double scale = pow(2.0, 40);
 
     // Encode two floats as plaintexts.
-    Plaintext plain1, plain2, one_pt, two_pt;
+    Plaintext plain1, plain2;
     encoder.encode(0.5, scale, plain1);
     encoder.encode(4.0, scale, plain2);
-    encoder.encode(1.0, scale, one_pt);
-    encoder.encode(2.0, scale, two_pt);
 
     // Encrypt the plaintexts.
-    Ciphertext cipher1, cipher2, one_ct, two_ct;
+    Ciphertext cipher1, cipher2;
     encryptor.encrypt(plain1, cipher1);
     encryptor.encrypt(plain2, cipher2);
-    //encryptor.encrypt(one_pt, one_ct);
-    //encryptor.encrypt(two_pt, two_ct);
 
     // Perform inv on ciphertexts.
-    Ciphertext inv_05 = inv(&context, relin_keys, scale, one_pt, two_pt, cipher1, 5);
-    Ciphertext inv_4 = inv(&context, relin_keys, scale, one_pt, two_pt, cipher2, 5);
+    Ciphertext inv_05 = inv(parms, relin_keys, scale, cipher1, 5);
+    Ciphertext inv_4 = inv(parms, relin_keys, scale, cipher2, 5);
 
     // Decrypt the result.
     Plaintext plain_result1, plain_result2;
@@ -112,6 +125,6 @@ void main_inv()
     cout << "Expected result1: 2" << endl;
 
     cout << "Actual result2: " << result2[0] << endl;
-    cout << "Expected result2: 0.25";
+    cout << "Expected result2: 0.25" << endl;
 
 }
