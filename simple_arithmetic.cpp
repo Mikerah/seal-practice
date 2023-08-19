@@ -6,7 +6,7 @@ using namespace seal;
 
 string uint64_to_hex_string(uint64_t value);
 
-int main()
+int main_simple_arithmetic()
 {
     // Create encryption parameters.
     EncryptionParameters parms(scheme_type::bfv);
