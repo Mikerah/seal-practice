@@ -19,6 +19,8 @@ target_sources(main PRIVATE
     ../simple_arithmetic.cpp
     ../simple_floating_point.cpp
     ../simple_arrays.cpp
+    ../simple_conditional_select.cpp
+    ../ckks_sort.cpp
 )
 
 # Link the executable to the SEAL library.
